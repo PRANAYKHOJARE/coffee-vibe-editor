@@ -6,7 +6,7 @@ import * as path from "path";
  */
 export interface TemplateFile {
   filename: string;
-  fileExtenstion: string;
+  fileExtension: string;
   content: string;
 }
 
@@ -152,7 +152,7 @@ export async function scanTemplateDirectory(
 
         items.push({
           filename: entry.name,
-          fileExtenstion: path.extname(entry.name),
+          fileExtension: path.extname(entry.name),
           content,
         });
       }
