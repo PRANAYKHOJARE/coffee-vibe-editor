@@ -25,7 +25,7 @@ export function ConfirmationDialog({
   title,
   description,
   confirmLabel = "Confirm",
-  cancelLabel = "cancel",
+  cancelLabel = "Cancel",
   onConfirm,
   onCancel,
   setIsOpen,

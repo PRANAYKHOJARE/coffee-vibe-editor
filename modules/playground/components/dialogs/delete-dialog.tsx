@@ -26,11 +26,11 @@ export function DeleteDialog({
   isOpen,
   setIsOpen,
   title = "Delete Item",
-  description = "Are you sure you want to delete this item? This action cannot be retrived",
+  description = "Are you sure you want to delete this item? This action cannot be undone.",
   itemName,
   onConfirm,
   confirmLabel = "Delete",
-  cancelLabel = "cancel",
+  cancelLabel = "Cancel",
 }: DeleteDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
@@ -38,7 +38,7 @@ export function DeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description.replace("{item}", `"${itemName}`)}
+            {description.replace("{item}", `"${itemName}"`)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

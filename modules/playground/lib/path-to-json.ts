@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 /**
- * Represents a file in template structure
+ * Represents a file in the template structure
  */
 export interface TemplateFile {
   filename: string;
@@ -19,7 +19,7 @@ export interface TemplateFolder {
 }
 
 /**
- * Type representing either a file or folder in template structure
+ * Type representing either a file or folder in the template structure
  */
 export type TemplateItem = TemplateFile | TemplateFolder;
 
@@ -27,44 +27,46 @@ export type TemplateItem = TemplateFile | TemplateFolder;
  * Options for scanning template directories
  */
 interface ScanOptions {
+  /**
+   * Files to ignore (exact filenames with extensions)
+   */
   ignoreFiles?: string[];
+
+  /**
+   * Folders to ignore (exact folder names)
+   */
   ignoreFolders?: string[];
+
+  /**
+   * File patterns to ignore (regex patterns)
+   */
   ignorePatterns?: RegExp[];
+
+  /**
+   * Maximum size of file to include content (in bytes)
+   * Files larger than this will have a placeholder message instead of content
+   */
   maxFileSize?: number;
-  outputJsonPath?: string;
-}
-
-/**
- * Metadata stored with the JSON output
- */
-interface TemplateMetadata {
-  totalFiles: number;
-  totalFolders: number;
-  generatedAt: string;
-  rootFolder: string;
-}
-
-/**
- * Full JSON output type
- */
-export interface TemplateStructureJSON {
-  metadata: TemplateMetadata;
-  structure: TemplateFolder;
 }
 
 /**
  * Scans a template directory and returns a structured JSON representation
+ *
+ * @param templatePath - Path to the template directory
+ * @param options - Scanning options to customize behavior
+ * @returns Promise resolving to the template structure as JSON
  */
 export async function scanTemplateDirectory(
   templatePath: string,
   options: ScanOptions = {}
-): Promise<TemplateStructureJSON> {
+): Promise<TemplateFolder> {
+  // Set default options
   const defaultOptions: ScanOptions = {
     ignoreFiles: [
       "package-lock.json",
       "yarn.lock",
       ".DS_Store",
-      "thumb.db",
+      "thumbs.db",
       ".gitignore",
       ".npmrc",
       ".yarnrc",
@@ -82,10 +84,15 @@ export async function scanTemplateDirectory(
       "build",
       "coverage",
     ],
-    ignorePatterns: [/^\..+\.swp$/, /^\.#/, /~$/],
+    ignorePatterns: [
+      /^\..+\.swp$/, // Vim swap files
+      /^\.#/, // Emacs backup files
+      /~$/, // Backup files
+    ],
     maxFileSize: 1024 * 1024, // 1MB
   };
 
+  // Merge provided options with defaults
   const mergedOptions: ScanOptions = {
     ignoreFiles: [
       ...(defaultOptions.ignoreFiles || []),
@@ -103,142 +110,198 @@ export async function scanTemplateDirectory(
       options.maxFileSize !== undefined
         ? options.maxFileSize
         : defaultOptions.maxFileSize,
-    outputJsonPath: options.outputJsonPath,
   };
 
+  // Validate the input path
   if (!templatePath) {
     throw new Error("Template path is required");
   }
 
-  const stats = await fs.promises.stat(templatePath);
-  if (!stats.isDirectory()) {
-    throw new Error(`'${templatePath}' is not a directory`);
+  // Check if the template path exists
+  try {
+    const stats = await fs.promises.stat(templatePath);
+    if (!stats.isDirectory()) {
+      throw new Error(`'${templatePath}' is not a directory`);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Template directory '${templatePath}' does not exist`);
+    }
+    throw error;
   }
 
-  let totalFiles = 0;
-  let totalFolders = 0;
+  // Get the folder name from the path
+  const folderName = path.basename(templatePath);
 
-  async function scanDirectory(dirPath: string): Promise<TemplateFolder> {
-    totalFolders++;
-    const folderName = path.basename(dirPath);
-    const items: (TemplateFile | TemplateFolder)[] = [];
-    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  // Process the directory and return the result
+  return processDirectory(folderName, templatePath, mergedOptions);
+}
 
+/**
+ * Process a directory and its contents recursively
+ *
+ * @param folderName - Name of the current folder
+ * @param folderPath - Path to the current folder
+ * @param options - Scanning options
+ * @returns Promise resolving to a TemplateFolder object
+ */
+async function processDirectory(
+  folderName: string,
+  folderPath: string,
+  options: ScanOptions
+): Promise<TemplateFolder> {
+  try {
+    // Read directory contents
+    const entries = await fs.promises.readdir(folderPath, {
+      withFileTypes: true,
+    });
+    const items: TemplateItem[] = [];
+
+    // Process each entry in the directory
     for (const entry of entries) {
-      const fullPath = path.join(dirPath, entry.name);
+      const entryName = entry.name;
+      const entryPath = path.join(folderPath, entryName);
 
+      // Check if this entry should be skipped
       if (entry.isDirectory()) {
-        if (mergedOptions.ignoreFolders?.includes(entry.name)) continue;
-        const subFolder = await scanDirectory(fullPath);
-        items.push(subFolder);
-      } else {
-        if (mergedOptions.ignoreFiles?.includes(entry.name)) continue;
-        if (
-          mergedOptions.ignorePatterns?.some((pattern) =>
-            pattern.test(entry.name)
-          )
-        )
+        // Skip ignored folders
+        if (options.ignoreFolders?.includes(entryName)) {
+          console.log(`Skipping ignored folder: ${entryPath}`);
           continue;
-
-        const stats = await fs.promises.stat(fullPath);
-        totalFiles++;
-        let content: string;
-
-        if (stats.size > (mergedOptions.maxFileSize ?? 1024 * 1024)) {
-          content = `/* File too large (${stats.size} bytes), skipped */`;
-        } else {
-          content = await fs.promises.readFile(fullPath, "utf8");
         }
 
-        items.push({
-          filename: entry.name,
-          fileExtension: path.extname(entry.name),
-          content,
-        });
+        // If it's a directory, process it recursively
+        const subFolder = await processDirectory(entryName, entryPath, options);
+        items.push(subFolder);
+      } else if (entry.isFile()) {
+        // Skip ignored files
+        if (options.ignoreFiles?.includes(entryName)) {
+          console.log(`Skipping ignored file: ${entryPath}`);
+          continue;
+        }
+
+        // Check against regex patterns
+        const shouldSkip = options.ignorePatterns?.some((pattern) =>
+          pattern.test(entryName)
+        );
+        if (shouldSkip) {
+          console.log(`Skipping file matching ignore pattern: ${entryPath}`);
+          continue;
+        }
+
+        // If it's a file, get its details
+        try {
+          const stats = await fs.promises.stat(entryPath);
+          const parsedPath = path.parse(entryName);
+          let content: string;
+
+          // Check file size before reading content
+          if (options.maxFileSize && stats.size > options.maxFileSize) {
+            content = `[File content not included: size (${stats.size} bytes) exceeds maximum allowed size (${options.maxFileSize} bytes)]`;
+          } else {
+            content = await fs.promises.readFile(entryPath, "utf8");
+          }
+
+          items.push({
+            filename: parsedPath.name,
+            fileExtension: parsedPath.ext.replace(/^\./, ""), // Remove leading dot
+            content,
+          });
+        } catch (error) {
+          console.error(`Error reading file ${entryPath}:`, error);
+          // Still include the file but with an error message as content
+          const parsedPath = path.parse(entryName);
+          items.push({
+            filename: parsedPath.name,
+            fileExtension: parsedPath.ext.replace(/^\./, ""),
+            content: `Error reading file: ${(error as Error).message}`,
+          });
+        }
       }
+      // Ignore other types of entries (symlinks, etc.)
     }
 
-    return { folderName, items };
-  }
-
-  const structure = await scanDirectory(templatePath);
-
-  const metadata: TemplateMetadata = {
-    totalFiles,
-    totalFolders,
-    generatedAt: new Date().toISOString(),
-    rootFolder: path.basename(templatePath),
-  };
-
-  const fullStructure: TemplateStructureJSON = {
-    metadata,
-    structure,
-  };
-
-  // Save JSON if requested
-  if (mergedOptions.outputJsonPath) {
-    await saveTemplateStructureToJson(
-      fullStructure,
-      mergedOptions.outputJsonPath
+    // Return the folder with its items
+    return {
+      folderName,
+      items,
+    };
+  } catch (error) {
+    throw new Error(
+      `Error processing directory '${folderPath}': ${(error as Error).message}`
     );
   }
-
-  return fullStructure;
 }
 
 /**
- * Saves template structure to JSON file
+ * Saves the template structure to a JSON file
+ *
+ * @param templatePath - Path to the template directory
+ * @param outputPath - Path where the JSON file should be saved
+ * @param options - Scanning options
+ * @returns Promise resolving when the file has been written
  */
 export async function saveTemplateStructureToJson(
-  structure: TemplateStructureJSON,
-  outputPath: string
+  templatePath: string,
+  outputPath: string,
+  options?: ScanOptions
 ): Promise<void> {
-  const resolvedPath = path.resolve(outputPath);
-  await fs.promises.writeFile(
-    resolvedPath,
-    JSON.stringify(structure, null, 2),
-    "utf8"
-  );
-  console.log(`✅ Template structure saved to: ${resolvedPath}`);
+  try {
+    // Scan the template directory
+    const templateStructure = await scanTemplateDirectory(
+      templatePath,
+      options
+    );
+
+    // Ensure the output directory exists
+    const outputDir = path.dirname(outputPath);
+    await fs.promises.mkdir(outputDir, { recursive: true });
+
+    // Write the JSON file
+    const data = await fs.promises.writeFile(
+      outputPath,
+      JSON.stringify(templateStructure, null, 2),
+      "utf8"
+    );
+    console.log(`Template structure saved to ${outputPath}`);
+  } catch (error) {
+    throw new Error(
+      `Error saving template structure: ${(error as Error).message}`
+    );
+  }
 }
 
-/**
- * Reads a template structure from JSON file
- */
 export async function readTemplateStructureFromJson(
   filePath: string
-): Promise<TemplateStructureJSON> {
-  if (!filePath) throw new Error("JSON file path is required");
-
-  const data = await fs.promises.readFile(filePath, "utf8");
-  const parsed: TemplateStructureJSON = JSON.parse(data);
-
-  if (!parsed.structure?.folderName || !parsed.structure?.items) {
-    throw new Error("Invalid JSON structure");
+): Promise<TemplateFolder> {
+  try {
+    const data = await fs.promises.readFile(filePath, "utf8");
+    return JSON.parse(data) as TemplateFolder;
+  } catch (error) {
+    throw new Error(
+      `Error reading template structure: ${(error as Error).message}`
+    );
   }
-
-  console.log(`✅ Template structure loaded from: ${filePath}`);
-  return parsed;
 }
 
 /**
- * Recreates folder & file structure from TemplateFolder
+ * Example usage:
+ *
+ * // Basic usage with default options
+ * const templateStructure = await scanTemplateDirectory('./templates/react-app');
+ *
+ * // With custom options
+ * const customOptions = {
+ *   ignoreFiles: ['README.md', 'CHANGELOG.md'],
+ *   ignoreFolders: ['docs', 'examples'],
+ *   maxFileSize: 500 * 1024 // 500KB
+ * };
+ * const templateStructure = await scanTemplateDirectory('./templates/react-app', customOptions);
+ *
+ * // Saving directly to a JSON file with custom options
+ * await saveTemplateStructureToJson(
+ *   './templates/react-app',
+ *   './output/react-app-template.json',
+ *   customOptions
+ * );
  */
-export async function createStructureFromTemplate(
-  structure: TemplateFolder,
-  targetPath: string
-): Promise<void> {
-  const dirPath = path.join(targetPath, structure.folderName);
-  await fs.promises.mkdir(dirPath, { recursive: true });
-
-  for (const item of structure.items) {
-    if ("folderName" in item) {
-      await createStructureFromTemplate(item, dirPath);
-    } else {
-      const filePath = path.join(dirPath, item.filename);
-      await fs.promises.writeFile(filePath, item.content, "utf8");
-    }
-  }
-
-  console.log(`📁 Structure created successfully at: ${dirPath}`);
-}

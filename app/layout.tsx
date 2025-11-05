@@ -31,10 +31,12 @@ export default async function RootLayout({
 
   return (
     <SessionProvider session={session}>
-      <html lang="en">
+      {/* ✅ Add suppressHydrationWarning here */}
+      <html lang="en" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          {/* ✅ ThemeProvider stays inside body */}
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -43,9 +45,7 @@ export default async function RootLayout({
           >
             <div className="flex flex-col min-h-screen">
               <Toaster />
-              <div  className="flex-1">
-                {children}
-              </div>
+              <div className="flex-1">{children}</div>
             </div>
           </ThemeProvider>
         </body>

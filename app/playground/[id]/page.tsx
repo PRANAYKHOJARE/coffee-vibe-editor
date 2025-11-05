@@ -23,28 +23,18 @@ const MainPlaygroundPage = () => {
   return (
     <TooltipProvider>
       <>
-        {/* ✅ Fix 1: render only when templateData is available */}
-        {templateData && (
-          <TemplateFileTree
-            data={templateData!} // ✅ now safe (not null)
-            onFileSelect={() => {}}
-            selectedFile={activeFile}
-            title="File Explorer"
-            onAddFile={() => {}}
-            onAddFolder={() => {}}
-            onDeleteFile={() => {}}
-            onDeleteFolder={() => {}}
-            onRenameFile={() => {}}
-            onRenameFolder={() => {}}
-          />
-        )}
-
-        {/* ✅ Fix 2: prevent crash during loading */}
-        {isLoading && (
-          <p className="text-sm text-muted-foreground px-4">
-            Loading file tree...
-          </p>
-        )}
+        <TemplateFileTree
+          data={templateData}
+          onFileSelect={() => {}}
+          selectedFile={activeFile}
+          title="File Explorer"
+          onAddFile={() => {}}
+          onAddFolder={() => {}}
+          onDeleteFile={() => {}}
+          onDeleteFolder={() => {}}
+          onRenameFile={() => {}}
+          onRenameFolder={() => {}}
+        />
 
         {/* ✅ layout */}
         <SidebarInset>
