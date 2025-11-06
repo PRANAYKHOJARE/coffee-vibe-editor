@@ -29,7 +29,7 @@ export const toggleStarMarked = async (
         where: {
           userId_playgroundId: {
             userId,
-            playgroundId,
+            playgroundId: playgroundId,
           },
         },
       });
@@ -53,14 +53,14 @@ export const getAllPlaygroundForUser = async () => {
   try {
     const playgrounds = await db.playground.findMany({
       where: {
-        userId: user.id,
+        userId: user?.id,
       },
       include: {
         user: true,
         Starmark: {
           // ✅ exact relation name from schema
           where: {
-            userId: user.id,
+            userId: user?.id!,
           },
           select: {
             isMarked: true,

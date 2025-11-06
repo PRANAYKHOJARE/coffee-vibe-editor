@@ -41,19 +41,25 @@ import {
 
 import { Button } from "@/components/ui/button";
 
+import RenameFolderDialog from "./dialogs/rename-folder-dialog";
+import NewFolderDialog from "./dialogs/new-folder-dialog";
+import NewFileDialog from "./dialogs/new-file-dialog";
+import RenameFileDialog from "./dialogs/rename-file-dialog";
 import { DeleteDialog } from "./dialogs/delete-dialog";
-import { RenameFolderDialog } from "./dialogs/rename-folder-dialog";
-import { NewFolderDialog } from "./dialogs/new-folder-dialog";
-import { NewFileDialog } from "./dialogs/new-file-dialog";
-import { RenameFileDialog } from "./dialogs/rename-file-dialog";
 import {
+  TemplateItem,
   TemplateFile,
   TemplateFolder,
-  TemplateItem,
 } from "../lib/path-to-json";
+
+import { Dispatch, SetStateAction } from "react";
 
 interface TemplateFileTreeProps {
   data: TemplateItem;
+  activeFileId?: string | null; // ⬅️ ADDED
+  setActiveFileId?: Dispatch<SetStateAction<string | null>>; // ⬅️ ADDED
+  setTemplateData?: Dispatch<SetStateAction<TemplateFolder>>; // ⬅️ ADDED
+
   onFileSelect?: (file: TemplateFile) => void;
   selectedFile?: TemplateFile;
   title?: string;
@@ -102,10 +108,13 @@ export function TemplateFileTree({
   const handleCreateFile = (filename: string, extension: string) => {
     if (onAddFile && isRootFolder) {
       const newFile: TemplateFile = {
+        id: `file_${Math.random().toString(36).substr(2, 9)}`, // ⬅️ ADD THIS
+        type: "file", // ⬅️ ADD THIS
         filename,
         fileExtension: extension,
         content: "",
       };
+
       onAddFile(newFile, "");
     }
     setIsNewFileDialogOpen(false);
@@ -114,9 +123,12 @@ export function TemplateFileTree({
   const handleCreateFolder = (folderName: string) => {
     if (onAddFolder && isRootFolder) {
       const newFolder: TemplateFolder = {
+        id: `folder_${Math.random().toString(36).substr(2, 9)}`, // ⬅️ ADD THIS
+        type: "folder", // ⬅️ ADD THIS
         folderName,
         items: [],
       };
+
       onAddFolder(newFolder, "");
     }
     setIsNewFolderDialogOpen(false);
@@ -184,16 +196,15 @@ export function TemplateFileTree({
       </SidebarContent>
       <SidebarRail />
 
-      {/* ✅ Fix 1: Props now match dialog definitions */}
       <NewFileDialog
         isOpen={isNewFileDialogOpen}
-        setIsOpen={setIsNewFileDialogOpen}
+        onClose={() => setIsNewFileDialogOpen(false)}
         onCreateFile={handleCreateFile}
       />
 
       <NewFolderDialog
         isOpen={isNewFolderDialogOpen}
-        setIsOpen={setIsNewFolderDialogOpen}
+        onClose={() => setIsNewFolderDialogOpen(false)}
         onCreateFolder={handleCreateFolder}
       />
     </Sidebar>
@@ -249,19 +260,26 @@ function TemplateNode({
 
   if (!isFolder) {
     const file = item as TemplateFile;
-    const fileName = `${file.filename}.${file.fileExtension}`; // ✅ Fix 2
+    const fileName = `${file.filename}.${file.fileExtension}`;
 
     const isSelected =
       selectedFile &&
       selectedFile.filename === file.filename &&
       selectedFile.fileExtension === file.fileExtension;
 
-    const handleRename = () => setIsRenameDialogOpen(true);
-    const handleDelete = () => setIsDeleteDialogOpen(true);
+    const handleRename = () => {
+      setIsRenameDialogOpen(true);
+    };
+
+    const handleDelete = () => {
+      setIsDeleteDialogOpen(true);
+    };
+
     const confirmDelete = () => {
       onDeleteFile?.(file, path);
       setIsDeleteDialogOpen(false);
     };
+
     const handleRenameSubmit = (newFilename: string, newExtension: string) => {
       onRenameFile?.(file, newFilename, newExtension, path);
       setIsRenameDialogOpen(false);
@@ -308,8 +326,8 @@ function TemplateNode({
 
         <RenameFileDialog
           isOpen={isRenameDialogOpen}
-          setIsOpen={setIsRenameDialogOpen}
-          onRenameFile={handleRenameSubmit}
+          onClose={() => setIsRenameDialogOpen(false)}
+          onRename={handleRenameSubmit}
           currentFilename={file.filename}
           currentExtension={file.fileExtension}
         />
@@ -319,7 +337,9 @@ function TemplateNode({
           setIsOpen={setIsDeleteDialogOpen}
           onConfirm={confirmDelete}
           title="Delete File"
-          description={`Are you sure you want to delete "${fileName}"? This action cannot be undone.`} // ✅ Fix 4
+          description={
+            'Are you sure you want to delete "{fileName}"? This action cannot be undone.'
+          }
           itemName={fileName}
           confirmLabel="Delete"
           cancelLabel="Cancel"
@@ -329,12 +349,24 @@ function TemplateNode({
   } else {
     const folder = item as TemplateFolder;
     const folderName = folder.folderName;
-    const currentPath = path ? `${path}/${folderName}` : folderName; // ✅ Fix 5
+    const currentPath = path ? `${path}/${folderName}` : folderName;
 
-    const handleAddFile = () => setIsNewFileDialogOpen(true);
-    const handleAddFolder = () => setIsNewFolderDialogOpen(true);
-    const handleRename = () => setIsRenameDialogOpen(true);
-    const handleDelete = () => setIsDeleteDialogOpen(true);
+    const handleAddFile = () => {
+      setIsNewFileDialogOpen(true);
+    };
+
+    const handleAddFolder = () => {
+      setIsNewFolderDialogOpen(true);
+    };
+
+    const handleRename = () => {
+      setIsRenameDialogOpen(true);
+    };
+
+    const handleDelete = () => {
+      setIsDeleteDialogOpen(true);
+    };
+
     const confirmDelete = () => {
       onDeleteFolder?.(folder, path);
       setIsDeleteDialogOpen(false);
@@ -343,6 +375,8 @@ function TemplateNode({
     const handleCreateFile = (filename: string, extension: string) => {
       if (onAddFile) {
         const newFile: TemplateFile = {
+          id: `file_${Math.random().toString(36).substr(2, 9)}`, // ⬅️ ADD THIS
+          type: "file", // ⬅️ ADD THIS
           filename,
           fileExtension: extension,
           content: "",
@@ -354,7 +388,13 @@ function TemplateNode({
 
     const handleCreateFolder = (folderName: string) => {
       if (onAddFolder) {
-        const newFolder: TemplateFolder = { folderName, items: [] };
+        const newFolder: TemplateFolder = {
+          id: `folder_${Math.random().toString(36).substr(2, 9)}`, // ⬅️ ADD THIS
+          type: "folder", // ⬅️ ADD THIS
+          folderName,
+          items: [],
+        };
+
         onAddFolder(newFolder, currentPath);
       }
       setIsNewFolderDialogOpen(false);
@@ -441,21 +481,21 @@ function TemplateNode({
 
         <NewFileDialog
           isOpen={isNewFileDialogOpen}
-          setIsOpen={setIsNewFileDialogOpen}
+          onClose={() => setIsNewFileDialogOpen(false)}
           onCreateFile={handleCreateFile}
         />
 
         <NewFolderDialog
           isOpen={isNewFolderDialogOpen}
-          setIsOpen={setIsNewFolderDialogOpen}
+          onClose={() => setIsNewFolderDialogOpen(false)}
           onCreateFolder={handleCreateFolder}
         />
 
         <RenameFolderDialog
           isOpen={isRenameDialogOpen}
-          setIsOpen={setIsRenameDialogOpen}
-          onRenameFolder={handleRename}
-          currentFolderName={folder.folderName}
+          onClose={() => setIsRenameDialogOpen(false)}
+          onRename={handleRenameSubmit}
+          currentFolderName={folderName}
         />
 
         <DeleteDialog
@@ -463,7 +503,9 @@ function TemplateNode({
           setIsOpen={setIsDeleteDialogOpen}
           onConfirm={confirmDelete}
           title="Delete Folder"
-          description={`Are you sure you want to delete "${folderName}" and all its contents? This action cannot be undone.`}
+          description={
+            'Are you sure you want to delete "{folderName}" and all its contents? This action cannot be undone.'
+          }
           itemName={folderName}
           confirmLabel="Delete"
           cancelLabel="Cancel"

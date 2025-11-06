@@ -1,10 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 
 /**
- * Represents a file in template structure
+ * Represents a file in the template structure
  */
 export interface TemplateFile {
+  id: string;
+  type: "file";
   filename: string;
   fileExtension: string;
   content: string;
@@ -14,12 +17,14 @@ export interface TemplateFile {
  * Represents a folder in the template structure which can contain files and other folders
  */
 export interface TemplateFolder {
+  id: string;
+  type: "folder";
   folderName: string;
   items: (TemplateFile | TemplateFolder)[];
 }
 
 /**
- * Type representing either a file or folder in template structure
+ * Type representing either a file or folder in the template structure
  */
 export type TemplateItem = TemplateFile | TemplateFolder;
 
@@ -31,25 +36,6 @@ interface ScanOptions {
   ignoreFolders?: string[];
   ignorePatterns?: RegExp[];
   maxFileSize?: number;
-  outputJsonPath?: string;
-}
-
-/**
- * Metadata stored with the JSON output
- */
-interface TemplateMetadata {
-  totalFiles: number;
-  totalFolders: number;
-  generatedAt: string;
-  rootFolder: string;
-}
-
-/**
- * Full JSON output type
- */
-export interface TemplateStructureJSON {
-  metadata: TemplateMetadata;
-  structure: TemplateFolder;
 }
 
 /**
@@ -58,13 +44,13 @@ export interface TemplateStructureJSON {
 export async function scanTemplateDirectory(
   templatePath: string,
   options: ScanOptions = {}
-): Promise<TemplateStructureJSON> {
+): Promise<TemplateFolder> {
   const defaultOptions: ScanOptions = {
     ignoreFiles: [
       "package-lock.json",
       "yarn.lock",
       ".DS_Store",
-      "thumb.db",
+      "thumbs.db",
       ".gitignore",
       ".npmrc",
       ".yarnrc",
@@ -99,146 +85,120 @@ export async function scanTemplateDirectory(
       ...(defaultOptions.ignorePatterns || []),
       ...(options.ignorePatterns || []),
     ],
-    maxFileSize:
-      options.maxFileSize !== undefined
-        ? options.maxFileSize
-        : defaultOptions.maxFileSize,
-    outputJsonPath: options.outputJsonPath,
+    maxFileSize: options.maxFileSize ?? defaultOptions.maxFileSize,
   };
 
-  if (!templatePath) {
-    throw new Error("Template path is required");
+  if (!templatePath) throw new Error("Template path is required");
+
+  try {
+    const stats = await fs.promises.stat(templatePath);
+    if (!stats.isDirectory())
+      throw new Error(`'${templatePath}' is not a directory`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Template directory '${templatePath}' does not exist`);
+    }
+    throw error;
   }
 
-  const stats = await fs.promises.stat(templatePath);
-  if (!stats.isDirectory()) {
-    throw new Error(`'${templatePath}' is not a directory`);
-  }
+  const folderName = path.basename(templatePath);
+  return processDirectory(folderName, templatePath, mergedOptions);
+}
 
-  let totalFiles = 0;
-  let totalFolders = 0;
+/**
+ * Process a directory and its contents recursively
+ */
+async function processDirectory(
+  folderName: string,
+  folderPath: string,
+  options: ScanOptions
+): Promise<TemplateFolder> {
+  const entries = await fs.promises.readdir(folderPath, {
+    withFileTypes: true,
+  });
+  const items: TemplateItem[] = [];
 
-  async function scanDirectory(dirPath: string): Promise<TemplateFolder> {
-    totalFolders++;
-    const folderName = path.basename(dirPath);
-    const items: (TemplateFile | TemplateFolder)[] = [];
-    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryName = entry.name;
+    const entryPath = path.join(folderPath, entryName);
 
-    for (const entry of entries) {
-      const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      if (options.ignoreFolders?.includes(entryName)) continue;
 
-      if (entry.isDirectory()) {
-        if (mergedOptions.ignoreFolders?.includes(entry.name)) continue;
-        const subFolder = await scanDirectory(fullPath);
-        items.push(subFolder);
-      } else {
-        if (mergedOptions.ignoreFiles?.includes(entry.name)) continue;
-        if (
-          mergedOptions.ignorePatterns?.some((pattern) =>
-            pattern.test(entry.name)
-          )
-        )
-          continue;
+      const subFolder = await processDirectory(entryName, entryPath, options);
+      items.push(subFolder);
+    } else if (entry.isFile()) {
+      if (options.ignoreFiles?.includes(entryName)) continue;
 
-        const stats = await fs.promises.stat(fullPath);
-        totalFiles++;
+      const shouldSkip = options.ignorePatterns?.some((pattern) =>
+        pattern.test(entryName)
+      );
+      if (shouldSkip) continue;
+
+      try {
+        const stats = await fs.promises.stat(entryPath);
+        const parsedPath = path.parse(entryName);
         let content: string;
 
-        if (stats.size > (mergedOptions.maxFileSize ?? 1024 * 1024)) {
-          content = `/* File too large (${stats.size} bytes), skipped */`;
+        if (options.maxFileSize && stats.size > options.maxFileSize) {
+          content = `[File content not included: ${stats.size} bytes > ${options.maxFileSize} bytes]`;
         } else {
-          content = await fs.promises.readFile(fullPath, "utf8");
+          content = await fs.promises.readFile(entryPath, "utf8");
         }
 
         items.push({
-          filename: entry.name,
-          fileExtension: path.extname(entry.name),
+          id: crypto.randomUUID(),
+          type: "file",
+          filename: parsedPath.name,
+          fileExtension: parsedPath.ext.replace(/^\./, ""),
           content,
+        });
+      } catch (error) {
+        const parsedPath = path.parse(entryName);
+        items.push({
+          id: crypto.randomUUID(),
+          type: "file",
+          filename: parsedPath.name,
+          fileExtension: parsedPath.ext.replace(/^\./, ""),
+          content: `Error reading file: ${(error as Error).message}`,
         });
       }
     }
-
-    return { folderName, items };
   }
 
-  const structure = await scanDirectory(templatePath);
-
-  const metadata: TemplateMetadata = {
-    totalFiles,
-    totalFolders,
-    generatedAt: new Date().toISOString(),
-    rootFolder: path.basename(templatePath),
+  return {
+    id: crypto.randomUUID(),
+    type: "folder",
+    folderName,
+    items,
   };
-
-  const fullStructure: TemplateStructureJSON = {
-    metadata,
-    structure,
-  };
-
-  // Save JSON if requested
-  if (mergedOptions.outputJsonPath) {
-    await saveTemplateStructureToJson(
-      fullStructure,
-      mergedOptions.outputJsonPath
-    );
-  }
-
-  return fullStructure;
 }
 
 /**
- * Saves template structure to JSON file
+ * Saves the template structure to a JSON file
  */
 export async function saveTemplateStructureToJson(
-  structure: TemplateStructureJSON,
-  outputPath: string
+  templatePath: string,
+  outputPath: string,
+  options?: ScanOptions
 ): Promise<void> {
-  const resolvedPath = path.resolve(outputPath);
+  const templateStructure = await scanTemplateDirectory(templatePath, options);
+  const outputDir = path.dirname(outputPath);
+  await fs.promises.mkdir(outputDir, { recursive: true });
   await fs.promises.writeFile(
-    resolvedPath,
-    JSON.stringify(structure, null, 2),
+    outputPath,
+    JSON.stringify(templateStructure, null, 2),
     "utf8"
   );
-  console.log(`✅ Template structure saved to: ${resolvedPath}`);
+  console.log(`✅ Template structure saved to ${outputPath}`);
 }
 
 /**
- * Reads a template structure from JSON file
+ * Reads a template structure JSON file back into an object
  */
 export async function readTemplateStructureFromJson(
   filePath: string
-): Promise<TemplateStructureJSON> {
-  if (!filePath) throw new Error("JSON file path is required");
-
+): Promise<TemplateFolder> {
   const data = await fs.promises.readFile(filePath, "utf8");
-  const parsed: TemplateStructureJSON = JSON.parse(data);
-
-  if (!parsed.structure?.folderName || !parsed.structure?.items) {
-    throw new Error("Invalid JSON structure");
-  }
-
-  console.log(`✅ Template structure loaded from: ${filePath}`);
-  return parsed;
-}
-
-/**
- * Recreates folder & file structure from TemplateFolder
- */
-export async function createStructureFromTemplate(
-  structure: TemplateFolder,
-  targetPath: string
-): Promise<void> {
-  const dirPath = path.join(targetPath, structure.folderName);
-  await fs.promises.mkdir(dirPath, { recursive: true });
-
-  for (const item of structure.items) {
-    if ("folderName" in item) {
-      await createStructureFromTemplate(item, dirPath);
-    } else {
-      const filePath = path.join(dirPath, item.filename);
-      await fs.promises.writeFile(filePath, item.content, "utf8");
-    }
-  }
-
-  console.log(`📁 Structure created successfully at: ${dirPath}`);
+  return JSON.parse(data) as TemplateFolder;
 }

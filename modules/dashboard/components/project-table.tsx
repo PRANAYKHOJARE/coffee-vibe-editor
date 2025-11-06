@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import type { Project } from "../types";
-import MarkedToggleButton from "./marked-toggle";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -54,11 +53,11 @@ import {
   Eye,
 } from "lucide-react";
 import { toast } from "sonner";
-import { duplicateProjectById } from "../actions";
+import { MarkedToggleButton } from "./marked-toggle";
 
 interface ProjectTableProps {
   projects: Project[];
-  onEditProject?: (
+  onUpdateProject?: (
     id: string,
     data: { title: string; description: string }
   ) => Promise<void>;
@@ -73,7 +72,7 @@ interface EditProjectData {
 
 export default function ProjectTable({
   projects,
-  onEditProject,
+  onUpdateProject,
   onDeleteProject,
   onDuplicateProject,
 }: ProjectTableProps) {
@@ -95,17 +94,19 @@ export default function ProjectTable({
     setEditDialogOpen(true);
   };
 
-  const handleDeleteClick = (project: Project) => {
+  const handleDeleteClick = async (project: Project) => {
     setSelectedProject(project);
+
     setDeleteDialogOpen(true);
   };
 
-  const handleEditProject = async () => {
-    if (!selectedProject || !onEditProject) return;
+  const handleUpdateProject = async () => {
+    if (!selectedProject || !onUpdateProject) return;
 
     setIsLoading(true);
+
     try {
-      await onEditProject(selectedProject.id, editData);
+      await onUpdateProject(selectedProject.id, editData);
       setEditDialogOpen(false);
       toast.success("Project updated successfully");
     } catch (error) {
@@ -116,6 +117,10 @@ export default function ProjectTable({
     }
   };
 
+  const handleMarkasFavorite = async (project: Project) => {
+    //    Write your logic here
+  };
+
   const handleDeleteProject = async () => {
     if (!selectedProject || !onDeleteProject) return;
 
@@ -123,6 +128,7 @@ export default function ProjectTable({
     try {
       await onDeleteProject(selectedProject.id);
       setDeleteDialogOpen(false);
+      setSelectedProject(null);
       toast.success("Project deleted successfully");
     } catch (error) {
       toast.error("Failed to delete project");
@@ -133,15 +139,15 @@ export default function ProjectTable({
   };
 
   const handleDuplicateProject = async (project: Project) => {
+    if (!onDuplicateProject) return;
+
     setIsLoading(true);
     try {
-      if (onDuplicateProject) await onDuplicateProject(project.id);
-      else await duplicateProjectById(project.id);
-      toast.success(`"${project.title}" duplicated successfully`);
-      window.location.reload();
+      await onDuplicateProject(project.id);
+      toast.success("Project duplicated successfully");
     } catch (error) {
       toast.error("Failed to duplicate project");
-      console.error(error);
+      console.error("Error duplicating project:", error);
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +156,7 @@ export default function ProjectTable({
   const copyProjectUrl = (projectId: string) => {
     const url = `${window.location.origin}/playground/${projectId}`;
     navigator.clipboard.writeText(url);
-    toast.success("Project URL copied successfully");
+    toast.success("Project url copied to clipboard");
   };
 
   return (
@@ -192,7 +198,7 @@ export default function ProjectTable({
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-500">
-                    {format(new Date(project.createdAt), "MMM d, yyyy")}
+                    {format(new Date(project.createdAt), "MMM dd, yyyy")}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -214,12 +220,13 @@ export default function ProjectTable({
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem asChild>
                         <MarkedToggleButton
-                          markedForRevision={project.Starmark?.[0]?.isMarked}
+                          markedForRevision={project.Starmark[0]?.isMarked}
                           id={project.id}
                         />
                       </DropdownMenuItem>
@@ -232,6 +239,17 @@ export default function ProjectTable({
                           Open Project
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/playground/${project.id}`}
+                          target="_blank"
+                          className="flex items-center"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open in New Tab
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleEditClick(project)}
                       >
@@ -267,13 +285,14 @@ export default function ProjectTable({
         </Table>
       </div>
 
-      {/* ✏️ Edit Project Dialog */}
+      {/* Edit Project Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
             <DialogDescription>
-              Update your project details below and save changes.
+              Make changes to your project details here. Click save when you're
+              done.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -315,7 +334,7 @@ export default function ProjectTable({
             </Button>
             <Button
               type="button"
-              onClick={handleEditProject}
+              onClick={handleUpdateProject}
               disabled={isLoading || !editData.title.trim()}
             >
               {isLoading ? "Saving..." : "Save Changes"}
@@ -324,14 +343,15 @@ export default function ProjectTable({
         </DialogContent>
       </Dialog>
 
-      {/* ❌ Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{selectedProject?.title}"? This
-              action cannot be undone.
+              action cannot be undone. All files and data associated with this
+              project will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

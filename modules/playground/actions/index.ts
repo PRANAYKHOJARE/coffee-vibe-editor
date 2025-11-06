@@ -4,25 +4,49 @@ import { db } from "@/lib/db";
 import { TemplateFolder } from "../lib/path-to-json";
 import { currentUser } from "@/modules/auth/actions";
 
-export const getPlaygroundById = async (id: string) => {
+export interface PlaygroundData {
+  id: string;
+  title?: string | null;
+  templateFiles?: { content: any | null }[];
+}
+
+/**
+ * Get playground details by ID
+ */
+export const getPlaygroundById = async (
+  id: string
+): Promise<PlaygroundData | null> => {
   try {
     const playground = await db.playground.findUnique({
       where: { id },
       select: {
+        id: true,
         title: true,
         templateFiles: {
-          select: {
-            content: true,
-          },
+          select: { content: true },
         },
       },
     });
-    return playground;
+
+    if (!playground) return null;
+
+    // ✅ Explicitly match the PlaygroundData type
+    const result: PlaygroundData = {
+      id: playground.id,
+      title: playground.title ?? null,
+      templateFiles: playground.templateFiles ?? [],
+    };
+
+    return result;
   } catch (error) {
-    console.log(error);
+    console.error("❌ getPlaygroundById error:", error);
+    return null; // ✅ Ensures consistent return type
   }
 };
 
+/**
+ * Save or update template content for a playground
+ */
 export const SaveUpdatedCode = async (
   playgroundId: string,
   data: TemplateFolder
@@ -43,9 +67,10 @@ export const SaveUpdatedCode = async (
         content: JSON.stringify(data),
       },
     });
+
     return updatedPlayground;
   } catch (error) {
-    console.log("SaveUpdatedCode error:", error);
+    console.error("❌ SaveUpdatedCode error:", error);
     return null;
   }
 };

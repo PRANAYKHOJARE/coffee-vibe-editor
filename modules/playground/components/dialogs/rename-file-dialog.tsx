@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,94 +9,102 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import React from "react";
 
 interface RenameFileDialogProps {
   isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  onRenameFile: (newFilename: string, newExtension: string) => void; // ✅ accepts two args
-  currentFilename: string;
-  currentExtension: string; // ✅ added for proper rename
-  title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
+  onClose: () => void;
+  onRename: (filename: string, extension: string) => void;
+  currentFilename?: string;
+  currentExtension?: string;
 }
 
-export function RenameFileDialog({
+export default function RenameFileDialog({
   isOpen,
-  setIsOpen,
-  onRenameFile,
+  onClose,
+  onRename,
   currentFilename,
   currentExtension,
-  title = "Rename File",
-  description = "Enter a new name and extension for the selected file.",
-  confirmLabel = "Rename",
-  cancelLabel = "Cancel",
 }: RenameFileDialogProps) {
-  const [newFilename, setNewFilename] = React.useState(currentFilename);
-  const [newExtension, setNewExtension] = React.useState(currentExtension);
+  // ✅ initialise with safe defaults only — no .trim yet
+  const [filename, setFilename] = React.useState<string>(currentFilename ?? "");
+  const [extension, setExtension] = React.useState<string>(
+    currentExtension ?? ""
+  );
 
-  // Reset fields when dialog opens
+  // ✅ update safely when dialog opens
   React.useEffect(() => {
     if (isOpen) {
-      setNewFilename(currentFilename);
-      setNewExtension(currentExtension);
+      setFilename(typeof currentFilename === "string" ? currentFilename : "");
+      setExtension(
+        typeof currentExtension === "string" ? currentExtension : ""
+      );
     }
-  }, [currentFilename, currentExtension, isOpen]);
+  }, [isOpen, currentFilename, currentExtension]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newFilename.trim()) {
-      onRenameFile(newFilename.trim(), newExtension.trim() || currentExtension); // ✅ fixed: pass both args
-      setIsOpen(false);
-    }
-  };
 
-  const handleCancel = () => {
-    setNewFilename(currentFilename);
-    setNewExtension(currentExtension);
-    setIsOpen(false);
+    const safeFilename = typeof filename === "string" ? filename.trim() : "";
+
+    const safeExtension =
+      typeof extension === "string"
+        ? extension?.trim() || ""
+        : typeof currentExtension === "string"
+        ? currentExtension?.trim() || ""
+        : "";
+
+    if (!safeFilename) return;
+
+    onRename(safeFilename, safeExtension);
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Rename File</DialogTitle>
+          <DialogDescription>Enter a new name for the file.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="newFilename">New Filename</Label>
-            <Input
-              id="newFilename"
-              placeholder="Enter new filename"
-              value={newFilename}
-              onChange={(e) => setNewFilename(e.target.value)}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="rename-filename" className="text-right">
+                Filename
+              </Label>
+              <Input
+                id="rename-filename"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                className="col-span-2"
+                autoFocus
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="newExtension">Extension</Label>
-            <Input
-              id="newExtension"
-              placeholder="e.g. js, ts, html"
-              value={newExtension}
-              onChange={(e) => setNewExtension(e.target.value)}
-              required
-            />
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="rename-extension" className="text-right">
+                Extension
+              </Label>
+              <Input
+                id="rename-extension"
+                value={extension}
+                onChange={(e) => setExtension(e.target.value)}
+                className="col-span-2"
+              />
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              {cancelLabel}
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
             </Button>
-            <Button type="submit">{confirmLabel}</Button>
+            <Button type="submit" disabled={!filename?.trim()}>
+              Rename
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

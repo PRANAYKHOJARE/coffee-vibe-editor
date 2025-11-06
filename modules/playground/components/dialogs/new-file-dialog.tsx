@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,29 +9,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import React from "react";
 
 interface NewFileDialogProps {
   isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
+  onClose: () => void;
   onCreateFile: (filename: string, extension: string) => void;
-  title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
 }
 
-export function NewFileDialog({
-  isOpen,
-  setIsOpen,
-  onCreateFile,
-  title = "Create New File",
-  description = "Enter the filename and extension to create a new file in your project.",
-  confirmLabel = "Create",
-  cancelLabel = "Cancel",
-}: NewFileDialogProps) {
+function NewFileDialog({ isOpen, onClose, onCreateFile }: NewFileDialogProps) {
   const [filename, setFilename] = React.useState("");
   const [extension, setExtension] = React.useState("js");
 
@@ -41,54 +29,58 @@ export function NewFileDialog({
       onCreateFile(filename.trim(), extension.trim() || "js");
       setFilename("");
       setExtension("js");
-      setIsOpen(false);
     }
   };
 
-  const handleCancel = () => {
-    setFilename("");
-    setExtension("js");
-    setIsOpen(false);
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Create New File</DialogTitle>
+          <DialogDescription>
+            Enter a name for the new file and select its extension.
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="filename">Filename</Label>
-            <Input
-              id="filename"
-              placeholder="Enter file name"
-              value={filename}
-              onChange={(e) => setFilename(e.target.value)}
-              required
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="filename" className="text-right">
+                Filename
+              </Label>
+              <Input
+                id="filename"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                className="col-span-2"
+                autoFocus
+                placeholder="main"
+              />
+            </div>
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="extension" className="text-right">
+                Extension
+              </Label>
+              <Input
+                id="extension"
+                value={extension}
+                onChange={(e) => setExtension(e.target.value)}
+                className="col-span-2"
+                placeholder="js"
+              />
+            </div>
           </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="extension">Extension</Label>
-            <Input
-              id="extension"
-              placeholder="e.g. js, ts, html"
-              value={extension}
-              onChange={(e) => setExtension(e.target.value)}
-            />
-          </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              {cancelLabel}
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
             </Button>
-            <Button type="submit">{confirmLabel}</Button>
+            <Button type="submit" disabled={!filename.trim()}>
+              Create
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
+
+export default NewFileDialog;

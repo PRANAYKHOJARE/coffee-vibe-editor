@@ -1,9 +1,8 @@
 import { create } from "zustand";
 import { toast } from "sonner";
-
 import { TemplateFile, TemplateFolder } from "../lib/path-to-json";
 
-// Placeholder for file ID generator
+// ✅ Utility to generate unique file ID
 function generateFileId(file: TemplateFile, root: TemplateFolder): string {
   return `${root.folderName}/${file.filename}.${file.fileExtension}`;
 }
@@ -22,33 +21,44 @@ interface FileExplorerState {
   activeFileId: string | null;
   editorContent: string;
 
-  // Setter functions
+  // ✅ Setters
   setPlaygroundId: (id: string) => void;
   setTemplateData: (data: TemplateFolder | null) => void;
   setEditorContent: (content: string) => void;
   setOpenFiles: (files: OpenFile[]) => void;
   setActiveFileId: (fileId: string | null) => void;
 
-  // Functions
+  // ✅ Core actions
   openFile: (file: TemplateFile) => void;
   closeFile: (fileId: string) => void;
   closeAllFiles: () => void;
+
+  // ✅ Additional handlers (used in MainPlaygroundPage)
+  handleAddFile: (folderId?: string) => void;
+  handleAddFolder: (parentFolderId?: string) => void;
+  handleDeleteFile: (fileId: string) => void;
+  handleDeleteFolder: (folderId: string) => void;
+  handleRenameFile: (fileId: string, newName: string) => void;
+  handleRenameFolder: (folderId: string, newName: string) => void;
+  updateFileContent: (fileId: string, content: string) => void;
 }
 
-//@ts-ignore
+// ✅ Zustand store
 export const useFileExplorer = create<FileExplorerState>((set, get) => ({
-  templateData: null,
   playgroundId: "",
+  templateData: null,
   openFiles: [],
   activeFileId: null,
   editorContent: "",
 
-  setTemplateData: (data) => set({ templateData: data }),
+  // ✅ Setters
   setPlaygroundId: (id) => set({ playgroundId: id }),
+  setTemplateData: (data) => set({ templateData: data }),
   setEditorContent: (content) => set({ editorContent: content }),
   setOpenFiles: (files) => set({ openFiles: files }),
   setActiveFileId: (fileId) => set({ activeFileId: fileId }),
 
+  // ✅ Open file
   openFile: (file) => {
     const root = get().templateData;
     if (!root) {
@@ -80,6 +90,7 @@ export const useFileExplorer = create<FileExplorerState>((set, get) => ({
     }));
   },
 
+  // ✅ Close single file
   closeFile: (fileId) => {
     const { openFiles, activeFileId } = get();
     const newFiles = openFiles.filter((f) => f.id !== fileId);
@@ -105,11 +116,29 @@ export const useFileExplorer = create<FileExplorerState>((set, get) => ({
     });
   },
 
+  // ✅ Close all files
   closeAllFiles: () => {
-    set({
-      openFiles: [],
-      activeFileId: null,
-      editorContent: "",
-    });
+    set({ openFiles: [], activeFileId: null, editorContent: "" });
+  },
+
+  // ✅ Placeholder implementations to fix errors
+  handleAddFile: () => toast.info("Add File feature coming soon"),
+  handleAddFolder: () => toast.info("Add Folder feature coming soon"),
+  handleDeleteFile: () => toast.info("Delete File feature coming soon"),
+  handleDeleteFolder: () => toast.info("Delete Folder feature coming soon"),
+  handleRenameFile: () => toast.info("Rename File feature coming soon"),
+  handleRenameFolder: () => toast.info("Rename Folder feature coming soon"),
+
+  // ✅ Update file content in open files
+  updateFileContent: (fileId, content) => {
+    set((state) => ({
+      openFiles: state.openFiles.map((f) =>
+        f.id === fileId
+          ? { ...f, content, hasUnsavedChanges: f.originalContent !== content }
+          : f
+      ),
+      editorContent:
+        state.activeFileId === fileId ? content : state.editorContent,
+    }));
   },
 }));

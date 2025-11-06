@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,28 +9,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import React from "react";
 
 interface NewFolderDialogProps {
   isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
+  onClose: () => void;
   onCreateFolder: (folderName: string) => void;
-  title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
 }
 
-export function NewFolderDialog({
+function NewFolderDialog({
   isOpen,
-  setIsOpen,
+  onClose,
   onCreateFolder,
-  title = "Create New Folder",
-  description = "Enter the folder name to create a new directory in your project.",
-  confirmLabel = "Create",
-  cancelLabel = "Cancel",
 }: NewFolderDialogProps) {
   const [folderName, setFolderName] = React.useState("");
 
@@ -39,43 +31,46 @@ export function NewFolderDialog({
     if (folderName.trim()) {
       onCreateFolder(folderName.trim());
       setFolderName("");
-      setIsOpen(false);
     }
   };
 
-  const handleCancel = () => {
-    setFolderName("");
-    setIsOpen(false);
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Create New Folder</DialogTitle>
+          <DialogDescription>
+            Enter a name for the new folder.
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="folderName">Folder Name</Label>
-            <Input
-              id="folderName"
-              placeholder="Enter folder name"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              required
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="foldername" className="text-right">
+                Folder Name
+              </Label>
+              <Input
+                id="foldername"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                className="col-span-2"
+                autoFocus
+                placeholder="components"
+              />
+            </div>
           </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              {cancelLabel}
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
             </Button>
-            <Button type="submit">{confirmLabel}</Button>
+            <Button type="submit" disabled={!folderName.trim()}>
+              Create
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
+
+export default NewFolderDialog;

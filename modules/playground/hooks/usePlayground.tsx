@@ -1,107 +1,46 @@
-import { useState, useEffect, useCallback } from "react";
-import { toast } from "sonner";
+"use client";
 
-import type { TemplateFolder } from "../lib/path-to-json";
-import { getPlaygroundById, SaveUpdatedCode } from "../actions";
+import { useEffect, useState } from "react";
 
-interface PlaygroundData {
-  id: string;
-  title?: string;
-  [key: string]: any;
-}
-
-interface usePlaygroundReturn {
-  playgroundData: PlaygroundData | null;
-  templateData: TemplateFolder | null;
-  isLoading: boolean;
-  error: string | null;
-  loadPlayground: () => Promise<void>;
-  saveTemplateData: (data: TemplateFolder) => Promise<void>;
-}
-
-export const usePlayground = (id: string): usePlaygroundReturn => {
-  const [playgroundData, setPlaygroundData] = useState<PlaygroundData | null>(
-    null
-  );
-  const [templateData, setTemplateData] = useState<TemplateFolder | null>(null);
+export function usePlayground(id?: string) {
+  const [templateData, setTemplateData] = useState<any>(null);
+  const [playgroundData, setPlaygroundData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPlayground = useCallback(async () => {
+  useEffect(() => {
     if (!id) return;
-    try {
-      setIsLoading(true);
-      setError(null);
 
-      const data = await getPlaygroundById(id);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/template/${id}`);
+        const data = await res.json();
+        console.log("📦 API Response:", data); // <-- Add this log
 
-      // @ts-ignore
-      setPlaygroundData(data);
-      const rawContent = data?.templateFiles?.[0]?.content;
+        if (!res.ok) throw new Error(data.error || "Failed to load template");
 
-      if (typeof rawContent === "string") {
-        const parsedContent = JSON.parse(rawContent);
-        setTemplateData(parsedContent);
-        toast.success("playground loaded successfully");
-        return;
+        // ✅ Adjust this to your real API structure
+        const templateJson =
+          data.templateJson || data.data?.templateJson || null;
+        const playgroundJson = data.playground || data.data?.playground || null;
+
+        setTemplateData(templateJson);
+        setPlaygroundData(playgroundJson);
+      } catch (err: any) {
+        console.error("❌ usePlayground error:", err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      //load template from api if not in saved content
-
-      const res = await fetch(`/api/template/${id}`);
-
-      if (!res.ok) throw new Error(`Failed to load template: ${res.status}`);
-
-      const templateRes = await res.json();
-
-      if (templateRes.templateJson && Array.isArray(templateRes.templateJson)) {
-        setTemplateData({
-          folderName: "Root",
-          items: templateRes.templateJson,
-        });
-      } else {
-        setTemplateData(
-          templateRes.templateJson || {
-            folderName: "Root",
-            items: [],
-          }
-        );
-      }
-      toast.success("Template loaded successfully");
-    } catch (error) {
-      console.error("Error loading playground:", error);
-      setError("Failed to load playground data");
-      toast.error("Failed to load playground data");
-    } finally {
-      setIsLoading(false);
-    }
+    fetchData();
   }, [id]);
 
-  const saveTemplateData = useCallback(
-    async (data: TemplateFolder) => {
-      try {
-        await SaveUpdatedCode(id, data);
-        setTemplateData(data);
-        toast.success("Changes saved successfully");
-      } catch (error) {
-        console.error("Error saving template data:", error);
-        toast.error("Failed to save changes");
-        throw error;
-      }
-    },
-    [id]
-  );
-
-  useEffect(() => {
-    loadPlayground();
-  }, [loadPlayground]);
-
-  return {
-    playgroundData,
-    templateData,
-    isLoading,
-    error,
-    loadPlayground,
-    saveTemplateData,
+  const saveTemplateData = async (data?: any) => {
+    console.log("Saving template data not yet implemented.", data);
   };
-};
+
+  return { templateData, playgroundData, isLoading, error, saveTemplateData };
+}
