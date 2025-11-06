@@ -8,7 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,13 +43,27 @@ import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Editor from "@monaco-editor/react";
+import WebContainerPreview from "@/modules/webcontainers/components/webcontainer-preview";
+import { useWebContainer } from "@/modules/webcontainers/hooks/useWebCointer";
+
 
 const MainPlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
-
+ 
   const { playgroundData, templateData, isLoading, error, saveTemplateData } =
     usePlayground(id);
+
+     const {
+       serverUrl,
+       isLoading: containerLoading,
+       error: containerError,
+       instance,
+       writeFileSync,
+       // @ts-ignore
+     } = useWebContainer({ templateData });
+
+
 
   const {
     setTemplateData,
@@ -365,103 +383,129 @@ const MainPlaygroundPage = () => {
           </div>
         </header>
 
-        {/* ===== Editor Area ===== */}
+        {/* ===== Editor + Preview (Resizable) ===== */}
         <div className="h-[calc(100vh-4rem)]">
           {openFiles.length > 0 ? (
-            <div className="h-full flex flex-col">
-              <div className="border-b bg-muted/30">
-                <Tabs
-                  value={activeFileId || ""}
-                  onValueChange={(val) => setActiveFileId(val)}
-                >
-                  <div className="flex items-center justify-between px-4 py-2">
-                    <TabsList className="h-8 bg-transparent p-0">
-                      {openFiles.map((file) => (
-                        <TabsTrigger
-                          key={file.id}
-                          value={file.id}
-                          className="relative h-8 px-3 group"
-                        >
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-3 w-3" />
-                            <span>
-                              {file.filename}.{file.fileExtension}
-                            </span>
-                            {file.hasUnsavedChanges && (
-                              <span className="h-2 w-2 rounded-full bg-orange-500" />
-                            )}
-                            <span
-                              className="ml-2 h-4 w-4 hover:bg-destructive hover:text-destructive-foreground rounded-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                closeFile(file.id);
-                              }}
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="h-full border-t"
+            >
+              {/* 📝 Editor Panel */}
+              <ResizablePanel defaultSize={isPreviewVisible ? 60 : 100}>
+                <div className="h-full flex flex-col">
+                  <div className="border-b bg-muted/30">
+                    <Tabs
+                      value={activeFileId || ""}
+                      onValueChange={(val) => setActiveFileId(val)}
+                    >
+                      <div className="flex items-center justify-between px-4 py-2">
+                        <TabsList className="h-8 bg-transparent p-0">
+                          {openFiles.map((file) => (
+                            <TabsTrigger
+                              key={file.id}
+                              value={file.id}
+                              className="relative h-8 px-3 group"
                             >
-                              <X className="h-3 w-3" />
-                            </span>
-                          </div>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-3 w-3" />
+                                <span>
+                                  {file.filename}.{file.fileExtension}
+                                </span>
+                                {file.hasUnsavedChanges && (
+                                  <span className="h-2 w-2 rounded-full bg-orange-500" />
+                                )}
+                                <span
+                                  className="ml-2 h-4 w-4 hover:bg-destructive hover:text-destructive-foreground rounded-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    closeFile(file.id);
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </span>
+                              </div>
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
 
-                    {openFiles.length > 1 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={closeAllFiles}
-                        className="h-6 px-2 text-xs"
-                      >
-                        Close All
-                      </Button>
+                        {openFiles.length > 1 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={closeAllFiles}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Close All
+                          </Button>
+                        )}
+                      </div>
+                    </Tabs>
+                  </div>
+
+                  {/* ✅ Monaco Editor */}
+                  <div className="flex-1 bg-gray-900 text-white overflow-hidden">
+                    {activeFile ? (
+                      <Editor
+                        height="100%"
+                        theme="vs-dark"
+                        language={
+                          activeFile.fileExtension === "js"
+                            ? "javascript"
+                            : activeFile.fileExtension === "ts"
+                            ? "typescript"
+                            : activeFile.fileExtension === "tsx"
+                            ? "typescript"
+                            : activeFile.fileExtension === "jsx"
+                            ? "javascript"
+                            : activeFile.fileExtension === "html"
+                            ? "html"
+                            : activeFile.fileExtension === "css"
+                            ? "css"
+                            : activeFile.fileExtension === "json"
+                            ? "json"
+                            : "plaintext"
+                        }
+                        value={activeFile.content || ""}
+                        onChange={(value) =>
+                          updateFileContent(activeFile.id, value || "")
+                        }
+                        options={{
+                          fontSize: 14,
+                          minimap: { enabled: false },
+                          automaticLayout: true,
+                          scrollBeyondLastLine: false,
+                          smoothScrolling: true,
+                          wordWrap: "on",
+                          roundedSelection: true,
+                        }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                        Select a file from the sidebar to start editing
+                      </div>
                     )}
                   </div>
-                </Tabs>
-              </div>
+                </div>
+              </ResizablePanel>
 
-              {/* ✅ Monaco Editor */}
-              <div className="flex-1 bg-gray-900 text-white overflow-hidden">
-                {activeFile ? (
-                  <Editor
-                    height="100%"
-                    theme="vs-dark"
-                    language={
-                      activeFile.fileExtension === "js"
-                        ? "javascript"
-                        : activeFile.fileExtension === "ts"
-                        ? "typescript"
-                        : activeFile.fileExtension === "tsx"
-                        ? "typescript"
-                        : activeFile.fileExtension === "jsx"
-                        ? "javascript"
-                        : activeFile.fileExtension === "html"
-                        ? "html"
-                        : activeFile.fileExtension === "css"
-                        ? "css"
-                        : activeFile.fileExtension === "json"
-                        ? "json"
-                        : "plaintext"
-                    }
-                    value={activeFile.content || ""}
-                    onChange={(value) =>
-                      updateFileContent(activeFile.id, value || "")
-                    }
-                    options={{
-                      fontSize: 14,
-                      minimap: { enabled: false },
-                      automaticLayout: true,
-                      scrollBeyondLastLine: false,
-                      smoothScrolling: true,
-                      wordWrap: "on",
-                      roundedSelection: true,
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    Select a file from the sidebar to start editing
-                  </div>
-                )}
-              </div>
-            </div>
+              {/* 🔸 Preview Panel (toggleable) */}
+              {isPreviewVisible && (
+                <>
+                  <ResizableHandle />
+                  <ResizablePanel defaultSize={50}>
+                    <WebContainerPreview
+                      templateData={templateData}
+                      instance={instance}
+                      writeFileSync={writeFileSync}
+                      isLoading={containerLoading}
+                      error={containerError}
+                      serverUrl={serverUrl!}
+                      forceResetup={false}
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
           ) : (
             <div className="flex flex-col h-full items-center justify-center text-muted-foreground gap-4">
               <FileText className="h-16 w-16 text-gray-300" />
