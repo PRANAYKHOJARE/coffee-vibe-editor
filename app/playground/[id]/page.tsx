@@ -47,10 +47,11 @@ import WebContainerPreview from "@/modules/webcontainers/components/webcontainer
 import { useWebContainer } from "@/modules/webcontainers/hooks/useWebContainer";
 import LoadingStep from "@/modules/playground/components/loader";
 import PlaygroundEditor from "@/modules/playground/components/playground-editor";
+import ToggleAI from "@/modules/playground/components/toggle-ai";
 
 const MainPlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
 
   const { playgroundData, templateData, isLoading, error, saveTemplateData } =
     usePlayground(id);
@@ -393,6 +394,12 @@ const MainPlaygroundPage = () => {
                 </TooltipTrigger>
                 <TooltipContent>Save All (Ctrl + Shift + S)</TooltipContent>
               </Tooltip>
+
+              <ToggleAI
+               isEnabled={false}
+               onToggle={()=>{}}
+               suggestionLoading={false}
+                />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
