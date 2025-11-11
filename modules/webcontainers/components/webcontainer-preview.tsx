@@ -7,7 +7,6 @@ import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import TerminalComponent from "./terminal";
 
-
 interface WebContainerPreviewProps {
   templateData: TemplateFolder;
   serverUrl: string;
@@ -122,15 +121,13 @@ const WebContainerPreview = ({
         setCurrentStep(2);
 
         // step-2 Mounting files
-        
-         if (terminalRef.current?.writeToTerminal) {
-           terminalRef.current.writeToTerminal(
-             "📁 Mounting files to WebContainer...\r\n"
-           );
-         }
+
+        if (terminalRef.current?.writeToTerminal) {
+          terminalRef.current.writeToTerminal(
+            "📁 Mounting files to WebContainer...\r\n"
+          );
+        }
         await instance.mount(files);
-
-
 
         if (terminalRef.current?.writeToTerminal) {
           terminalRef.current.writeToTerminal(
@@ -146,11 +143,11 @@ const WebContainerPreview = ({
 
         // Step-3 install dependences
 
-         if (terminalRef.current?.writeToTerminal) {
-           terminalRef.current.writeToTerminal(
-             "📦 Installing dependencies...\r\n"
-           );
-         }
+        if (terminalRef.current?.writeToTerminal) {
+          terminalRef.current.writeToTerminal(
+            "📦 Installing dependencies...\r\n"
+          );
+        }
 
         const installProcess = await instance.spawn("npm", ["install"]);
 
@@ -172,11 +169,11 @@ const WebContainerPreview = ({
           );
         }
 
-         if (terminalRef.current?.writeToTerminal) {
-           terminalRef.current.writeToTerminal(
-             "✅ Dependencies installed successfully\r\n"
-           );
-         }
+        if (terminalRef.current?.writeToTerminal) {
+          terminalRef.current.writeToTerminal(
+            "✅ Dependencies installed successfully\r\n"
+          );
+        }
 
         setLoadingState((prev) => ({
           ...prev,
@@ -187,12 +184,11 @@ const WebContainerPreview = ({
 
         //step-4 Start the server
 
-       if (terminalRef.current?.writeToTerminal) {
-         terminalRef.current.writeToTerminal(
-           "🚀 Starting development server...\r\n"
-         );
-       }
-
+        if (terminalRef.current?.writeToTerminal) {
+          terminalRef.current.writeToTerminal(
+            "🚀 Starting development server...\r\n"
+          );
+        }
 
         const startProcess = await instance.spawn("npm", ["run", "start"]);
 
@@ -225,9 +221,9 @@ const WebContainerPreview = ({
       } catch (err) {
         console.error("Error setting up container:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
-         if (terminalRef.current?.writeToTerminal) {
-           terminalRef.current.writeToTerminal(`❌ Error: ${errorMessage}\r\n`);
-         }
+        if (terminalRef.current?.writeToTerminal) {
+          terminalRef.current.writeToTerminal(`❌ Error: ${errorMessage}\r\n`);
+        }
         setSetupError(errorMessage);
         setIsSetupInProgress(false);
         setLoadingState({
@@ -340,34 +336,33 @@ const WebContainerPreview = ({
 
           {/* Terminal */}
           <div className="flex-1 p-4">
-                   <TerminalComponent
-                ref={terminalRef}
-                webContainerInstance={instance}
-                theme="dark"
-                className="h-full"
-              />
-            
-          </div>
-        </div>
-      ) : (
-        <div className="h-full flex flex-col">
-          <div className="flex-1">
-          <iframe
-            src={previewUrl}
-            className="w-full h-full border-none"
-            title="WebContainer Preview"
-          />
-        </div>
-
-        <div className="h-64 border-t">
-           <TerminalComponent
+            <TerminalComponent
               ref={terminalRef}
               webContainerInstance={instance}
               theme="dark"
               className="h-full"
             />
           </div>
+        </div>
+      ) : (
+        <div className="h-full flex flex-col">
+          <div className="flex-1">
+            <iframe
+              src={previewUrl}
+              className="w-full h-full border-none"
+              title="WebContainer Preview"
+            />
           </div>
+
+          <div className="h-64 border-t">
+            <TerminalComponent
+              ref={terminalRef}
+              webContainerInstance={instance}
+              theme="dark"
+              className="h-full"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
