@@ -6,8 +6,9 @@ import { db } from "@/lib/db";
 import { templatePaths } from "@/lib/template";
 import path from "path";
 import fs from "fs/promises";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
+// Utility to validate JSON structure
 function validateJsonStructure(data: unknown): boolean {
   try {
     JSON.parse(JSON.stringify(data)); // Ensures it's serializable
@@ -18,15 +19,19 @@ function validateJsonStructure(data: unknown): boolean {
   }
 }
 
+// ✅ FIXED: context.params must be awaited in Next.js 15+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params; // ✅ correct usage in Next.js 15+
+  const { id } = await context.params; // ✅ Await the params object
   console.log("✅ /api/template hit with id:", id);
 
   if (!id) {
-    return Response.json({ error: "Missing playground ID" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing playground ID" },
+      { status: 400 }
+    );
   }
 
   const playground = await db.playground.findUnique({
@@ -34,14 +39,17 @@ export async function GET(
   });
 
   if (!playground) {
-    return Response.json({ error: "Playground not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Playground not found" },
+      { status: 404 }
+    );
   }
 
   const templateKey = playground.template as keyof typeof templatePaths;
   const templatePath = templatePaths[templateKey];
 
   if (!templatePath) {
-    return Response.json({ error: "Invalid template" }, { status: 404 });
+    return NextResponse.json({ error: "Invalid template" }, { status: 404 });
   }
 
   try {
@@ -53,7 +61,7 @@ export async function GET(
 
     // Validate the JSON structure before saving
     if (!validateJsonStructure(result.items)) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Invalid JSON structure" },
         { status: 500 }
       );
@@ -61,13 +69,13 @@ export async function GET(
 
     await fs.unlink(outputFile);
 
-    return Response.json(
-      { success: true, templateJson: result },
+    return NextResponse.json(
+      { success: true, templateJson: result, playground },
       { status: 200 }
     );
   } catch (error) {
     console.error("Error generating template JSON:", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Failed to generate template" },
       { status: 500 }
     );
