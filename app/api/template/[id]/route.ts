@@ -7,11 +7,10 @@ import { templatePaths } from "@/lib/template";
 import path from "path";
 import fs from "fs/promises";
 import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 
 function validateJsonStructure(data: unknown): boolean {
   try {
-    JSON.parse(JSON.stringify(data));
+    JSON.parse(JSON.stringify(data)); // Ensures it's serializable
     return true;
   } catch (error) {
     console.error("Invalid JSON structure:", error);
@@ -23,8 +22,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  // ✅ No await needed in Next.js 15
+  const { id } = params; // ✅ correct usage in Next.js 15+
   console.log("✅ /api/template hit with id:", id);
 
   if (!id) {
@@ -36,22 +34,7 @@ export async function GET(
   });
 
   if (!playground) {
-    console.log("🧩 Playground found? false – using mock data");
-    return NextResponse.json({
-      success: true,
-      templateJson: {
-        folderName: "root",
-        items: [
-          {
-            filename: "index",
-            fileExtension: "tsx",
-            content: "console.log('Hello')",
-          },
-          { folderName: "components", items: [] },
-        ],
-      },
-      playground: { id, title: "Mock Playground" },
-    });
+    return Response.json({ error: "Playground not found" }, { status: 404 });
   }
 
   const templateKey = playground.template as keyof typeof templatePaths;
@@ -68,6 +51,7 @@ export async function GET(
     await saveTemplateStructureToJson(inputPath, outputFile);
     const result = await readTemplateStructureFromJson(outputFile);
 
+    // Validate the JSON structure before saving
     if (!validateJsonStructure(result.items)) {
       return Response.json(
         { error: "Invalid JSON structure" },
