@@ -46,24 +46,20 @@ import Editor from "@monaco-editor/react";
 import WebContainerPreview from "@/modules/webcontainers/components/webcontainer-preview";
 import { useWebContainer } from "@/modules/webcontainers/hooks/useWebContainer";
 import LoadingStep from "@/modules/playground/components/loader";
-import PlaygroundEditor from "@/modules/playground/components/playground-editor";
+import { PlaygroundEditor } from "@/modules/playground/components/playground-editor";
 import ToggleAI from "@/modules/playground/components/toggle-ai";
+import { useAISuggestions } from "@/modules/playground/hooks/useAISuggestion";
 
 const MainPlaygroundPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams() as { id?: string };
+  const id = params?.id ?? "";
+
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
 
   const { playgroundData, templateData, isLoading, error, saveTemplateData } =
     usePlayground(id);
 
-  const {
-    serverUrl,
-    isLoading: containerLoading,
-    error: containerError,
-    instance,
-    writeFileSync,
-    //@ts-ignore
-  } = useWebContainer({ templateData });
+  const aiSuggestions = useAISuggestions();
 
   const {
     setTemplateData,
@@ -84,11 +80,28 @@ const MainPlaygroundPage = () => {
     updateFileContent,
   } = useFileExplorer();
 
+  const {
+    serverUrl,
+    isLoading: containerLoading,
+    error: containerError,
+    instance,
+    writeFileSync,
+  } = useWebContainer({
+    templateData: templateData ?? {
+      id: "temp",
+      folderName: "root",
+      items: [],
+      type: "folder",
+    },
+  });
+
   const lastSyncedContent = useRef<Map<string, string>>(new Map());
 
   // Set playground ID
   useEffect(() => {
-    setPlaygroundId(id);
+    if (id) {
+      setPlaygroundId(id);
+    }
   }, [id, setPlaygroundId]);
 
   // Sync fetched template data
@@ -372,7 +385,9 @@ const MainPlaygroundPage = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleSave()}
+                    onClick={() => {
+                      handleSave();
+                    }}
                     disabled={!activeFile || !activeFile.hasUnsavedChanges}
                   >
                     <Save className="h-4 w-4 text-green-600" />
@@ -396,10 +411,10 @@ const MainPlaygroundPage = () => {
               </Tooltip>
 
               <ToggleAI
-               isEnabled={false}
-               onToggle={()=>{}}
-               suggestionLoading={false}
-                />
+                isEnabled={aiSuggestions.isEnabled}
+                onToggle={aiSuggestions.toggleEnabled}
+                suggestionLoading={aiSuggestions.isLoading}
+              />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -484,8 +499,21 @@ const MainPlaygroundPage = () => {
                       activeFile={activeFile}
                       content={activeFile?.content || ""}
                       onContentChange={(value) => {
-                        activeFileId && updateFileContent(activeFileId, value);
+                        if (activeFileId)
+                          updateFileContent(activeFileId, value);
                       }}
+                      suggestion={aiSuggestions.suggestion}
+                      suggestionLoading={aiSuggestions.isLoading}
+                      suggestionPosition={aiSuggestions.position}
+                      onAcceptSuggestion={(editor, monaco) =>
+                        aiSuggestions.acceptSuggestion(editor, monaco)
+                      }
+                      onRejectSuggestion={(editor) =>
+                        aiSuggestions.rejectSuggestion(editor)
+                      }
+                      onTriggerSuggestion={(type, editor) =>
+                        aiSuggestions.fetchSuggestion(type, editor)
+                      }
                     />
                   </ResizablePanel>
 
@@ -499,7 +527,7 @@ const MainPlaygroundPage = () => {
                           writeFileSync={writeFileSync}
                           isLoading={containerLoading}
                           error={containerError}
-                          serverUrl={serverUrl!}
+                          serverUrl={serverUrl ?? ""}
                           forceResetup={false}
                         />
                       </ResizablePanel>

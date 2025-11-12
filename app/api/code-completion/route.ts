@@ -21,62 +21,52 @@ interface CodeContext {
   incompletePatterns: string[];
 }
 
-export async function POST(request:NextRequest){
-    try {
-       const body: CodeSuggestionRequest = await request.json();
+export async function POST(request: NextRequest) {
+  try {
+    const body: CodeSuggestionRequest = await request.json();
 
-       const {
-         fileContent,
-         cursorLine,
-         cursorColumn,
-         suggestionType,
-         fileName,
-       } = body;
+    const { fileContent, cursorLine, cursorColumn, suggestionType, fileName } =
+      body;
 
-       // Validate input
-       if (
-         !fileContent ||
-         cursorLine < 0 ||
-         cursorColumn < 0 ||
-         !suggestionType
-       ) {
-         return NextResponse.json(
-           { error: "Invalid input parameters" },
-           { status: 400 }
-         );
-       }
+    // Validate input
+    if (!fileContent || cursorLine < 0 || cursorColumn < 0 || !suggestionType) {
+      return NextResponse.json(
+        { error: "Invalid input parameters" },
+        { status: 400 }
+      );
+    }
 
-       const context = analyzeCodeContext(
-         fileContent,
-         cursorLine,
-         cursorColumn,
-         fileName
-       );
+    const context = analyzeCodeContext(
+      fileContent,
+      cursorLine,
+      cursorColumn,
+      fileName
+    );
 
-       const prompt = buildPrompt(context, suggestionType);
+    const prompt = buildPrompt(context, suggestionType);
 
-       const suggestion = await generateSuggestion(prompt);
+    const suggestion = await generateSuggestion(prompt);
 
-       return NextResponse.json({
-         suggestion,
-         context,
-         metadata: {
-           language: context.language,
-           framework: context.framework,
-           position: context.cursorPosition,
-           generatedAt: new Date().toISOString(),
-         },
-       });
-    } catch (error : any) {
-        console.error("Context analysis error:", error);
+    return NextResponse.json({
+      suggestion,
+      context,
+      metadata: {
+        language: context.language,
+        framework: context.framework,
+        position: context.cursorPosition,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error("Context analysis error:", error);
     return NextResponse.json(
       { error: "Internal server error", message: error.message },
       { status: 500 }
-    ); 
-    }
+    );
+  }
 }
 
- function analyzeCodeContext(
+function analyzeCodeContext(
   content: string,
   line: number,
   column: number,
@@ -155,30 +145,29 @@ async function generateSuggestion(prompt: string): Promise<string> {
         model: "tinyllama",
         prompt,
         stream: false,
-        option: {
-          temperature: 0.7,
-          max_tokens: 300,
-        },
       }),
     });
 
-       if (!response.ok) {
-      throw new Error(`AI service error: ${response.statusText}`)
+    if (!response.ok) {
+      throw new Error(
+        `AI service error: ${response.status} ${response.statusText}`
+      );
     }
 
-      const data = await response.json()
-    let suggestion = data.response
+    const data = await response.json();
+    // Ollama’s response has `response` or `output` field
+    let suggestion = data.response || data.output || "";
 
-     // Clean up the suggestion
+    // Clean out code fences if present
     if (suggestion.includes("```")) {
-      const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/)
-      suggestion = codeMatch ? codeMatch[1].trim() : suggestion
+      const match = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
+      suggestion = match ? match[1].trim() : suggestion;
     }
 
-    return suggestion
-  } catch (error) {
-      console.error("AI generation error:", error)
-    return "// AI suggestion unavailable"
+    return suggestion || "// AI suggestion unavailable";
+  } catch (err) {
+    console.error("AI generation error:", err);
+    return "// AI suggestion unavailable";
   }
 }
 
