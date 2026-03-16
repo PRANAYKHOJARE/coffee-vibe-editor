@@ -1,6 +1,12 @@
+# ☕ Coffee Vibe Editor
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+It includes an **AI-powered coding assistant**, a **code editor**, and an **interactive playground** to help developers experiment with code and AI features.
+
+---
+
+# 🚀 Getting Started
 
 First, run the development server:
 
@@ -12,13 +18,14 @@ yarn dev
 pnpm dev
 # or
 bun dev
-```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+📸 Application Screenshots
 
 ### 🔥 Dashboard
 ![Dashboard](screenshots/1.png)
@@ -33,17 +40,42 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ![Editor](screenshots/3.png)
 
 
-### System Architecture
-Frontend (Next.js chat UI)
-        ↓
-/api/chat (Next.js backend route)
-        ↓
+## 🏗 System Architecture
+
+The AI assistant in this project works through the following architecture:
+
+Frontend (Next.js Chat UI)
+↓
+/api/chat (Next.js Backend API Route)
+↓
 Ollama Local API
 http://localhost:11434/api/generate
-        ↓
-TinyLlama Model
-        ↓
-Response returned to UI
+
+↓
+TinyLlama AI Model
+↓
+AI Response Returned to UI
+
+
+### Flow Explanation
+
+**1️⃣ Frontend (Next.js Chat UI)**  
+The user sends a message from the chat interface.
+
+**2️⃣ Backend API Route (`/api/chat`)**  
+The Next.js server receives the message and prepares the prompt with the conversation history.
+
+**3️⃣ Ollama Local API**  
+The backend sends a request to the local Ollama server running at:
+http://localhost:11434/api/generate
+
+
+**4️⃣ TinyLlama Model**  
+Ollama processes the request using the TinyLlama model and generates an AI response.
+
+**5️⃣ Response to UI**  
+The generated response is returned to the frontend and displayed in the chat interface.
+
 
 ## Learn More
 
