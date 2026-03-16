@@ -28,16 +28,16 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 📸 Application Screenshots
 
 ### 🔥 Dashboard
-![Dashboard](screenshots/1.png)
+![Dashboard](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/1.png)
 
-### Playground
-![Playground](screenshots/2.png)
+### 🎮 Playground
+![Playground](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/2.png)
 
 ### 🧠 AI Integration
-![AI Module](screenshots/4.png)
+![AI Module](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/4.png)
 
 ### 💻 Code Editor
-![Editor](screenshots/3.png)
+![Editor](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/3.png)
 
 ## 🏗 System Architecture
 
