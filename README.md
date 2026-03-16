@@ -82,13 +82,13 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## 📸 Project Screenshots
 
 ### 🔥 Dashboard
-<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/1.png" width="900"/>
+<img src="https://github.com/PRANAYKHOJARE/coffee-vibe-editor/blob/main/screenshots/1.png?raw=true" width="900"/>
 
 ### 🎮 Playground
-<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/2.png" width="900"/>
+<img src="https://github.com/PRANAYKHOJARE/coffee-vibe-editor/blob/main/screenshots/2.png?raw=true" width="900"/>
 
 ### 🧠 AI Integration
-<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/4.png" width="900"/>
+<img src="https://github.com/PRANAYKHOJARE/coffee-vibe-editor/blob/main/screenshots/4.png?raw=true" width="900"/>
 
 ### 💻 Code Editor
-<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/3.png" width="900"/>
+<img src="https://github.com/PRANAYKHOJARE/coffee-vibe-editor/blob/main/screenshots/3.png?raw=true" width="900"/>
