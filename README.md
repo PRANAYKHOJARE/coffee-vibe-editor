@@ -28,7 +28,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 📸 Application Screenshots
 
 ### 🔥 Dashboard
-![Dashboard](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/1.png)
+![Dashboard](./screenshots/1.png)
 
 ### 🎮 Playground
 ![Playground](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/2.png)
