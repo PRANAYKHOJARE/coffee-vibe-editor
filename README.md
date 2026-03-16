@@ -25,20 +25,6 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-📸 Application Screenshots
-
-### 🔥 Dashboard
-![Dashboard](./screenshots/1.png)
-
-### 🎮 Playground
-![Playground](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/2.png)
-
-### 🧠 AI Integration
-![AI Module](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/4.png)
-
-### 💻 Code Editor
-![Editor](https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/3.png)
-
 ## 🏗 System Architecture
 
 The AI assistant in this project works through the following architecture:
@@ -90,3 +76,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## 📸 Project Screenshots
+
+### 🔥 Dashboard
+<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/1.png" width="900"/>
+
+### 🎮 Playground
+<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/2.png" width="900"/>
+
+### 🧠 AI Integration
+<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/4.png" width="900"/>
+
+### 💻 Code Editor
+<img src="https://raw.githubusercontent.com/PRANAYKHOJARE/coffee-vibe-editor/main/screenshots/3.png" width="900"/>
