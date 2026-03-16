@@ -33,6 +33,18 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ![Editor](screenshots/3.png)
 
 
+### System Architecture
+Frontend (Next.js chat UI)
+        ↓
+/api/chat (Next.js backend route)
+        ↓
+Ollama Local API
+http://localhost:11434/api/generate
+        ↓
+TinyLlama Model
+        ↓
+Response returned to UI
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
