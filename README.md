@@ -39,7 +39,6 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ### 💻 Code Editor
 ![Editor](screenshots/3.png)
 
-
 ## 🏗 System Architecture
 
 The AI assistant in this project works through the following architecture:
