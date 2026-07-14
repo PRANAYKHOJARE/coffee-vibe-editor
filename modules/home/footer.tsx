@@ -1,37 +1,20 @@
 import Link from "next/link";
-import { Github as LucideGithub } from "lucide-react";
-import Image from "next/image";
-
 export function Footer() {
-  const socialLinks = [
-    {
-      href: "#",
-      icon: (
-        <LucideGithub className="w-5 h-5 text-zinc-500 dark:text-zinc-400 hover:text-black"></LucideGithub>
-      ),
-    },
-  ];
   return (
     <footer className="border-t border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col items-center space-x-0">
-        {/* {Social Links} */}
-        <div className="flex gap-4">
-          {socialLinks.map((link, index) => (
-            <Link
-              key={index}
-              href={link.href || "#"}
-              target="_black"
-              rel="noopener noreferrer"
-            >
-              {link.icon}
-            </Link>
-          ))}
-        </div>
+      <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-8 sm:px-6">
+        <div className="text-center space-y-1">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Developed by{" "}
+            <span className="font-semibold text-zinc-800 dark:text-zinc-100">
+              Pranay Khojare
+            </span>
+          </p>
 
-        {/* copyright Notice */}
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          &copy; {new Date().getFullYear()} Codesnippet. All rights reserved.
-        </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            © {new Date().getFullYear()} CodeSnippet. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   );
