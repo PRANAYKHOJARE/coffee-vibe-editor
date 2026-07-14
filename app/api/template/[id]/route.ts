@@ -7,6 +7,7 @@ import { templatePaths } from "@/lib/template";
 import path from "path";
 import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
+import os from "os";
 
 // Utility to validate JSON structure
 function validateJsonStructure(data: unknown): boolean {
@@ -22,7 +23,7 @@ function validateJsonStructure(data: unknown): boolean {
 // ✅ FIXED: context.params must be awaited in Next.js 15+
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params; // ✅ Await the params object
   console.log("✅ /api/template hit with id:", id);
@@ -30,7 +31,7 @@ export async function GET(
   if (!id) {
     return NextResponse.json(
       { error: "Missing playground ID" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -41,7 +42,7 @@ export async function GET(
   if (!playground) {
     return NextResponse.json(
       { error: "Playground not found" },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -54,7 +55,10 @@ export async function GET(
 
   try {
     const inputPath = path.join(process.cwd(), templatePath);
-    const outputFile = path.join(process.cwd(), `output/${templateKey}.json`);
+    const outputDir = path.join(os.tmpdir(), "output");
+    await fs.mkdir(outputDir, { recursive: true });
+
+    const outputFile = path.join(outputDir, `${templateKey}.json`);
 
     await saveTemplateStructureToJson(inputPath, outputFile);
     const result = await readTemplateStructureFromJson(outputFile);
@@ -63,7 +67,7 @@ export async function GET(
     if (!validateJsonStructure(result.items)) {
       return NextResponse.json(
         { error: "Invalid JSON structure" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -71,13 +75,13 @@ export async function GET(
 
     return NextResponse.json(
       { success: true, templateJson: result, playground },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error generating template JSON:", error);
     return NextResponse.json(
       { error: "Failed to generate template" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
