@@ -415,6 +415,13 @@ const MainPlaygroundPage = () => {
                 suggestionLoading={aiSuggestions.isLoading}
               />
 
+              <div className="hidden lg:flex items-center rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                Built by{" "}
+                <span className="ml-1 font-semibold text-foreground">
+                  Pranay Khojare
+                </span>
+              </div>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline">
