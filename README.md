@@ -1,5 +1,9 @@
-# ☕ Coffee Vibe Editor
+☕ Coffee Vibe Editor
 
+🔗 **Live Demo:** [coffee-vibe-editor.vercel.app](https://coffee-vibe-editor.vercel.app)
+
+This is a Next.js project bootstrapped with create-next-app.
+...
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 It includes an **AI-powered coding assistant**, a **code editor**, and an **interactive playground** to help developers experiment with code and AI features.
