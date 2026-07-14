@@ -1,4 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
+
+const gemini = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+});
 
 interface CodeSuggestionRequest {
   fileContent: string;
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!fileContent || cursorLine < 0 || cursorColumn < 0 || !suggestionType) {
       return NextResponse.json(
         { error: "Invalid input parameters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
       fileContent,
       cursorLine,
       cursorColumn,
-      fileName
+      fileName,
     );
 
     const prompt = buildPrompt(context, suggestionType);
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
     console.error("Context analysis error:", error);
     return NextResponse.json(
       { error: "Internal server error", message: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,7 +75,7 @@ function analyzeCodeContext(
   content: string,
   line: number,
   column: number,
-  fileName?: string
+  fileName?: string,
 ): CodeContext {
   const lines = content.split("\n");
   const currentLine = lines[line] || "";
@@ -117,7 +122,7 @@ Context:
 ${context.beforeContext}
 ${context.currentLine.substring(
   0,
-  context.cursorPosition.column
+  context.cursorPosition.column,
 )}|CURSOR|${context.currentLine.substring(context.cursorPosition.column)}
 ${context.afterContext}
 
@@ -138,35 +143,55 @@ Generate suggestion:`;
 
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "tinyllama",
-        prompt,
-        stream: false,
-      }),
+    // Development -> Ollama
+    if (process.env.AI_PROVIDER === "ollama") {
+      const response = await fetch(`${process.env.OLLAMA_HOST}/api/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "tinyllama",
+          prompt,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ollama request failed");
+      }
+
+      const data = await response.json();
+
+      let suggestion = data.response || "";
+
+      if (suggestion.includes("```")) {
+        const match = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
+        suggestion = match ? match[1].trim() : suggestion;
+      }
+
+      return suggestion;
+    }
+
+    // Production -> Gemini
+    const result = await gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
+You are an expert code completion assistant.
+
+Return ONLY the code to insert.
+
+Do not explain.
+
+Do not use markdown.
+
+${prompt}
+`,
     });
 
-    if (!response.ok) {
-      throw new Error(
-        `AI service error: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    // Ollama’s response has `response` or `output` field
-    let suggestion = data.response || data.output || "";
-
-    // Clean out code fences if present
-    if (suggestion.includes("```")) {
-      const match = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
-      suggestion = match ? match[1].trim() : suggestion;
-    }
-
-    return suggestion || "// AI suggestion unavailable";
+    return result.text || "// No suggestion";
   } catch (err) {
-    console.error("AI generation error:", err);
+    console.error(err);
     return "// AI suggestion unavailable";
   }
 }
