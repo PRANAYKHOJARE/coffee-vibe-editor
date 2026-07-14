@@ -30,7 +30,7 @@ export const proxy = auth((req) => {
   }
 
   if (!isLoggedIn && !isPublicRoute) {
-    return Response.redirect(new URL("/auth/signup", nextUrl));
+    return Response.redirect(new URL("/auth/sign-in", nextUrl));
   }
 
   return null;

@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import "katex/dist/katex.min.css";
+// import "katex/dist/katex.min.css";
 import Image from "next/image";
 
 interface ChatMessage {
@@ -152,10 +152,10 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
       chatMode === "chat"
         ? "chat"
         : chatMode === "review"
-        ? "code_review"
-        : chatMode === "fix"
-        ? "error_fix"
-        : "optimization";
+          ? "code_review"
+          : chatMode === "fix"
+            ? "error_fix"
+            : "optimization";
 
     const newMessage: ChatMessage = {
       role: "user",
@@ -268,7 +268,7 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
         <div
           className={cn(
             "fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300",
-            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
           onClick={onClose}
         />
@@ -277,7 +277,7 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
         <div
           className={cn(
             "fixed right-0 top-0 h-full w-full max-w-6xl bg-zinc-950 border-l border-zinc-800 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl",
-            isOpen ? "translate-x-0" : "translate-x-full"
+            isOpen ? "translate-x-0" : "translate-x-full",
           )}
         >
           {/* Enhanced Header */}
@@ -473,7 +473,7 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                   <div
                     className={cn(
                       "flex items-start gap-4 group",
-                      msg.role === "user" ? "justify-end" : "justify-start"
+                      msg.role === "user" ? "justify-end" : "justify-start",
                     )}
                   >
                     {msg.role === "assistant" && (
@@ -487,7 +487,7 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                         "max-w-[85%] rounded-xl shadow-sm",
                         msg.role === "user"
                           ? "bg-zinc-900/70 text-white p-4 rounded-br-md"
-                          : "bg-zinc-900/80 backdrop-blur-sm text-zinc-100 p-5 rounded-bl-md border border-zinc-800/50"
+                          : "bg-zinc-900/80 backdrop-blur-sm text-zinc-100 p-5 rounded-bl-md border border-zinc-800/50",
                       )}
                     >
                       {msg.role === "assistant" && (
@@ -503,8 +503,10 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
-                            code: ({ children, className, inline }) => {
-                              if (inline) {
+                            code: ({ children, className }) => {
+                              const isBlock = !!className;
+
+                              if (!isBlock) {
                                 return (
                                   <code className="bg-zinc-800 px-1 py-0.5 rounded text-sm">
                                     {children}
@@ -577,10 +579,10 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                       {chatMode === "review"
                         ? "Analyzing code structure and patterns..."
                         : chatMode === "fix"
-                        ? "Identifying issues and solutions..."
-                        : chatMode === "optimize"
-                        ? "Analyzing performance bottlenecks..."
-                        : "Processing your request..."}
+                          ? "Identifying issues and solutions..."
+                          : chatMode === "optimize"
+                            ? "Analyzing performance bottlenecks..."
+                            : "Processing your request..."}
                     </span>
                   </div>
                 </div>
@@ -602,10 +604,10 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                     chatMode === "chat"
                       ? "Ask about your code, request improvements, or paste code to analyze..."
                       : chatMode === "review"
-                      ? "Describe what you'd like me to review in your code..."
-                      : chatMode === "fix"
-                      ? "Describe the issue you're experiencing..."
-                      : "Describe what you'd like me to optimize..."
+                        ? "Describe what you'd like me to review in your code..."
+                        : chatMode === "fix"
+                          ? "Describe the issue you're experiencing..."
+                          : "Describe what you'd like me to optimize..."
                   }
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
